@@ -5,7 +5,6 @@
 //  Created by Marc Rousavy on 09.11.20.
 //  Copyright © 2020 mrousavy. All rights reserved.
 //
-
 import AVFoundation
 import Foundation
 import UIKit
@@ -15,16 +14,16 @@ import UIKit
 //
 // CameraView+RecordVideo
 // TODO: Better startRecording()/stopRecording() (promise + callback, wait for TurboModules/JSI)
-
 // CameraView+TakePhoto
 // TODO: Photo HDR
-
 private let propsThatRequireReconfiguration = ["cameraId",
                                                "enableDepthData",
                                                "enableHighQualityPhotos",
                                                "enablePortraitEffectsMatteDelivery",
                                                "preset",
                                                "photo",
+                                               "iso",
+                                               "shootingTime",
                                                "video",
                                                "enableFrameProcessor"]
 private let propsThatRequireDeviceReconfiguration = ["fps",
@@ -33,10 +32,8 @@ private let propsThatRequireDeviceReconfiguration = ["fps",
                                                      "colorSpace"]
 
 // MARK: - CameraView
-
 public final class CameraView: UIView {
   // pragma MARK: React Properties
-
   // pragma MARK: Exported Properties
   // props that require reconfiguring
   @objc var cameraId: NSString?
@@ -51,6 +48,8 @@ public final class CameraView: UIView {
   @objc var enableFrameProcessor = false
   // props that require format reconfiguring
   @objc var format: NSDictionary?
+  @objc var iso: NSNumber?
+  @objc var shootingTime: NSNumber?
   @objc var fps: NSNumber?
   @objc var frameProcessorFps: NSNumber = -1.0 // "auto"
   @objc var hdr: NSNumber? // nullable bool
