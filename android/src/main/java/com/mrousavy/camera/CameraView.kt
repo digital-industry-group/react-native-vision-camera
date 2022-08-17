@@ -86,10 +86,12 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var photo: Boolean? = null
   var video: Boolean? = null
   var audio: Boolean? = null
+  var exposure: Int? = null
   var enableFrameProcessor = false
   // props that require format reconfiguring
   var format: ReadableMap? = null
   var fps: Int? = null
+
   var hdr: Boolean? = null // nullable bool
   var colorSpace: String? = null
   var lowLightBoost: Boolean? = null // nullable bool
@@ -478,6 +480,18 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
           useCases.add(imageCapture!!)
         }
       }
+
+      val exposureState: ExposureState? = camera?.cameraInfo?.exposureState;
+      val range = exposureState?.exposureCompensationRange;
+      Log.d("got exposure ", exposure.toString());
+      val MAX_PROP_RANGE = 100;
+      if (range != null && exposure != null) {
+        val LOW_RANGE = Math.min(Math.abs(range!!.lower), Math.abs(range!!.upper));
+        val EXPOSURE_VALUE_RATIO = LOW_RANGE.toDouble() / MAX_PROP_RANGE
+        Log.i("finish exposure ", (exposure!! * EXPOSURE_VALUE_RATIO).toInt().toString());
+        camera?.cameraControl?.setExposureCompensationIndex((exposure!! * EXPOSURE_VALUE_RATIO).toInt())
+      };
+
       if (enableFrameProcessor) {
         Log.i(TAG, "Adding ImageAnalysis use-case...")
         imageAnalysis = imageAnalysisBuilder.build().apply {

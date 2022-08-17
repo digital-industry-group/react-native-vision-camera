@@ -63,6 +63,13 @@ class CameraViewManager(reactContext: ReactApplicationContext) : ViewGroupManage
     view.audio = audio
   }
 
+  @ReactProp(name = "exposure")
+  fun setLowLightBoost(view: CameraView, exposure: Int) {
+    if (view.exposure != exposure)
+      addChangedPropToTransaction(view, "exposure")
+    view.exposure = exposure
+  }
+
   @ReactProp(name = "enableFrameProcessor")
   fun setEnableFrameProcessor(view: CameraView, enableFrameProcessor: Boolean) {
     if (view.enableFrameProcessor != enableFrameProcessor)
