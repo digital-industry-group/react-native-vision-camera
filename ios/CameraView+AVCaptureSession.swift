@@ -19,6 +19,8 @@ extension CameraView {
   final func configureCaptureSession() {
     ReactLogger.log(level: .info, message: "Configuring Session...")
     isReady = false
+      
+      ReactLogger.log(level: .info, message: "Test James Test");
 
     #if targetEnvironment(simulator)
       invokeOnError(.device(.notAvailableOnSimulator))
@@ -116,7 +118,7 @@ extension CameraView {
         photoOutput!.mirror()
       }
     }
-
+      
     // Video Output + Frame Processor
     if let videoOutput = videoOutput {
       captureSession.removeOutput(videoOutput)
@@ -142,16 +144,36 @@ extension CameraView {
       }
       do {
         try device.lockForConfiguration()
+          
         ReactLogger.log(level: .info, message: "Exposure mode supporting is: \"\(device.isExposureModeSupported(AVCaptureDevice.ExposureMode.custom))\"...")
+          
         if device.isExposureModeSupported(AVCaptureDevice.ExposureMode.custom) {
+            
           let shootingTimeSafe = shootingTime
           if iso!.floatValue > device.activeFormat.minISO && iso!.floatValue < device.activeFormat.maxISO {
             ReactLogger.log(level: .info, message: "Out of range ISO: \"\(String(describing: iso))\"... Will be use ISO = 400.")
           }
-          let isoSafe = iso!.floatValue > device.activeFormat.minISO && iso!.floatValue < device.activeFormat.maxISO ? iso : 400
-          ReactLogger.log(level: .info, message: "ISO: \"\(String(describing: isoSafe))\"...")
-          ReactLogger.log(level: .info, message: "ShootingTime: \"\(String(describing: shootingTime))\"...")
-            device.setExposureModeCustom(duration: CMTimeMake(value: 1, timescale: shootingTime as! Int32), iso: isoSafe as! Float, completionHandler: nil)
+            
+            
+            let isoSafe = iso!.floatValue > device.activeFormat.minISO && iso!.floatValue < device.activeFormat.maxISO ? iso : 400.0
+            
+            let maxShutterSpeedTime = device.activeFormat.maxExposureDuration
+            let passedIsoRatio = isoSafe!.floatValue / device.activeFormat.maxISO
+            let timescaleRatioNum = passedIsoRatio * 1000000
+            let valueRatioNum = passedIsoRatio * 46
+            let shutterSpeedValue = CMTimeMultiplyByRatio(maxShutterSpeedTime, multiplier: Int32(isoSafe!), divisor: Int32(device.activeFormat.maxISO)) //div : 1
+            let newShutterSpeed = CMTimeMake(value: Int64(valueRatioNum), timescale: Int32(timescaleRatioNum))
+            
+            let ratio = iso!.floatValue / device.activeFormat.maxISO
+            
+            let maxBias = device.maxExposureTargetBias
+            let totalBias = maxBias * 2
+
+            let newAddedBias = ratio * totalBias
+            let finalBias = newAddedBias - maxBias
+            
+            device.setExposureTargetBias(finalBias)
+
           ReactLogger.log(level: .info, message: "Exposure successfully configured!")
         } else {
           ReactLogger.log(level: .info, message: "Exposure dont support!")
