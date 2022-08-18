@@ -87,6 +87,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var video: Boolean? = null
   var audio: Boolean? = null
   var exposure: Int? = null
+
   var enableFrameProcessor = false
   // props that require format reconfiguring
   var format: ReadableMap? = null
@@ -256,6 +257,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   }
 
   override fun onConfigurationChanged(newConfig: Configuration?) {
+
     super.onConfigurationChanged(newConfig)
     updateOrientation()
   }
@@ -279,6 +281,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
    * Updates the custom Lifecycle to match the host activity's lifecycle, and if it's active we narrow it down to the [isActive] and [isAttachedToWindow] fields.
    */
   private fun updateLifecycleState() {
+
     val lifecycleBefore = lifecycleRegistry.currentState
     if (hostLifecycleState == Lifecycle.State.RESUMED) {
       // Host Lifecycle (Activity) is currently active (RESUMED), so we narrow it down to the view's lifecycle
@@ -308,6 +311,19 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
     updateLifecycleState()
   }
 
+  fun updateExposure() {
+    val exposureState: ExposureState? = camera?.cameraInfo?.exposureState;
+    val range = exposureState?.exposureCompensationRange;
+    val MAX_PROP_RANGE = 100;
+
+    if (range != null && exposure != null) {
+      val LOW_RANGE = Math.min(Math.abs(range!!.lower), Math.abs(range!!.upper));
+      val EXPOSURE_VALUE_RATIO = LOW_RANGE.toDouble() / MAX_PROP_RANGE
+      Log.i("finish exposure ", (exposure!! * EXPOSURE_VALUE_RATIO).toInt().toString());
+        camera?.cameraControl?.setExposureCompensationIndex((exposure!! * EXPOSURE_VALUE_RATIO).toInt())
+    };
+  }
+
   /**
    * Invalidate all React Props and reconfigure the device
    */
@@ -317,10 +333,12 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
     //  I need to use CoroutineScope.launch because of the suspend fun [configureSession]
     coroutineScope.launch {
       try {
+
         val shouldReconfigureSession = changedProps.containsAny(propsThatRequireSessionReconfiguration)
         val shouldReconfigureZoom = shouldReconfigureSession || changedProps.contains("zoom")
         val shouldReconfigureTorch = shouldReconfigureSession || changedProps.contains("torch")
         val shouldUpdateOrientation = shouldReconfigureSession ||  changedProps.contains("orientation")
+        val shouldUpdateExposure = shouldReconfigureSession || changedProps.contains("exposure");
 
         if (changedProps.contains("isActive")) {
           updateLifecycleState()
@@ -337,6 +355,9 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         }
         if (shouldUpdateOrientation) {
           updateOrientation()
+        }
+        if (shouldUpdateExposure) {
+          updateExposure();
         }
       } catch (e: Throwable) {
         Log.e(TAG, "update() threw: ${e.message}")
@@ -481,17 +502,6 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         }
       }
 
-      val exposureState: ExposureState? = camera?.cameraInfo?.exposureState;
-      val range = exposureState?.exposureCompensationRange;
-      Log.d("got exposure ", exposure.toString());
-      val MAX_PROP_RANGE = 100;
-      if (range != null && exposure != null) {
-        val LOW_RANGE = Math.min(Math.abs(range!!.lower), Math.abs(range!!.upper));
-        val EXPOSURE_VALUE_RATIO = LOW_RANGE.toDouble() / MAX_PROP_RANGE
-        Log.i("finish exposure ", (exposure!! * EXPOSURE_VALUE_RATIO).toInt().toString());
-        camera?.cameraControl?.setExposureCompensationIndex((exposure!! * EXPOSURE_VALUE_RATIO).toInt())
-      };
-
       if (enableFrameProcessor) {
         Log.i(TAG, "Adding ImageAnalysis use-case...")
         imageAnalysis = imageAnalysisBuilder.build().apply {
@@ -523,6 +533,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
 
       minZoom = camera!!.cameraInfo.zoomState.value?.minZoomRatio ?: 1f
       maxZoom = camera!!.cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
+
+      updateExposure();
 
       val duration = System.currentTimeMillis() - startTime
       Log.i(TAG_PERF, "Session configured in $duration ms! Camera: ${camera!!}")
