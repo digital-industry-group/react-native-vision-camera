@@ -84,6 +84,14 @@ final class CameraViewManager: RCTViewManager {
     component.focus(point: CGPoint(x: x.doubleValue, y: y.doubleValue), promise: promise)
   }
 
+      @objc
+    final func manualFocus(_ node: NSNumber, lensPosition: Float, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let promise = Promise(resolver: resolve, rejecter: reject)
+
+        let component = getCameraView(withTag: node) 
+        component.manuallyFocus(lensPosition: lensPosition, promise: promise)
+    }
+
   @objc
   final func getAvailableVideoCodecs(_ node: NSNumber, fileType: String?, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
     withPromise(resolve: resolve, reject: reject) {

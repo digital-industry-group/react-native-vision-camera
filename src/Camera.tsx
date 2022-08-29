@@ -295,6 +295,14 @@ export class Camera extends React.PureComponent<CameraProps> {
   }
   //#endregion
 
+  public async manuallyFocus(lensPosition: number): Promise<void> {
+    try {
+      return await CameraModule.manuallyFocus(this.handle, lensPosition);
+    } catch (e) {
+      throw tryParseNativeCameraError(e);
+    }
+  }
+
   /**
    * Get a list of video codecs the current camera supports for a given file type.  Returned values are ordered by efficiency (descending).
    * @example
