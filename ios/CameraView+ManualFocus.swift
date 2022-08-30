@@ -8,10 +8,11 @@
 //  Created by James Lund on 8/29/22.
 //
 
+import AVFoundation
 import Foundation
 
 extension CameraView {
-    func manuallyFocus(lensPosition: Float, promise: Promise) {
+    func manuallyFocus(lensPosition: NSNumber, promise: Promise) {
         withPromise(promise) {
             guard let device = self.videoDeviceInput?.device else {
                 throw CameraError.session(SessionError.cameraNotReady)
@@ -20,11 +21,13 @@ extension CameraView {
                 throw CameraError.device(DeviceError.manualFocusNotSupported)
             }
 
-            var pos = lensPosition
+            var pos = lensPosition.floatValue
 
             // Only lens positions between 0 and 1.0 are supported on iOS devices.
-            if lensPosition > 1.0 || lensPosition < 0 {
+            if pos > 1.0 {
                 pos = 1.0
+            } else if pos < 0 {
+                pos = 0
             }
 
             do {
@@ -40,9 +43,13 @@ extension CameraView {
         }
     }
 
-//    func getCurrentLensPosition(promise: Promise) {
-//        withPromise(promise) {
-//            AVCaptureDevice.currentLensPosition
-//        }
-//    }
+    func getCurrentLensPosition(promise: Promise) {
+        withPromise(promise) {
+            guard let device = self.videoDeviceInput?.device else {
+                throw CameraError.session(SessionError.cameraNotReady)
+            }
+
+            return device.lensPosition
+        }
+    }
 }

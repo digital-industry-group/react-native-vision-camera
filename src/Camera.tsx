@@ -303,6 +303,14 @@ export class Camera extends React.PureComponent<CameraProps> {
     }
   }
 
+  public async getCurrentLensPosition(): Promise<void> {
+    try {
+      return await CameraModule.getCurrentLensPosition(this.handle);
+    } catch (e) {
+      throw tryParseNativeCameraError(e);
+    }
+  }
+
   /**
    * Get a list of video codecs the current camera supports for a given file type.  Returned values are ordered by efficiency (descending).
    * @example

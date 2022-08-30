@@ -84,12 +84,20 @@ final class CameraViewManager: RCTViewManager {
     component.focus(point: CGPoint(x: x.doubleValue, y: y.doubleValue), promise: promise)
   }
 
-      @objc
-    final func manualFocus(_ node: NSNumber, lensPosition: Float, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+     @objc
+    final func manuallyFocus(_ node: NSNumber, lensPosition: NSNumber, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         let promise = Promise(resolver: resolve, rejecter: reject)
 
-        let component = getCameraView(withTag: node) 
+        let component = getCameraView(withTag: node)
         component.manuallyFocus(lensPosition: lensPosition, promise: promise)
+    }
+    
+    @objc
+    final func getCurrentLensPosition(_ node: NSNumber, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let promise = Promise(resolver: resolve, rejecter: reject)
+        
+        let component = getCameraView(withTag: node)
+        component.getCurrentLensPosition(promise: promise)
     }
 
   @objc
