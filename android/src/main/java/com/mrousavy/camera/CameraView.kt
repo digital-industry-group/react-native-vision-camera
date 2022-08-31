@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.camera2.*
+import android.hardware.camera2.CaptureResult.LENS_FOCUS_RANGE
 import android.util.Log
 import android.util.Range
 import android.view.*
@@ -24,13 +25,11 @@ import androidx.lifecycle.*
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.bridge.*
-import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.mrousavy.camera.frameprocessor.FrameProcessorPerformanceDataCollector
 import com.mrousavy.camera.frameprocessor.FrameProcessorRuntimeManager
 import com.mrousavy.camera.utils.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.guava.await
-import java.lang.IllegalArgumentException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.floor
@@ -87,6 +86,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var video: Boolean? = null
   var audio: Boolean? = null
   var exposure: Int? = null
+  var lensDistance: Float? = null
 
   var enableFrameProcessor = false
   // props that require format reconfiguring
@@ -113,6 +113,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
       lastFrameProcessorPerformanceEvaluation = System.currentTimeMillis()
       frameProcessorPerformanceDataCollector.clear()
     }
+
+  val previewBuilder = Preview.Builder()
 
   // private properties
   private var isMounted = false
@@ -324,6 +326,23 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
     };
   }
 
+  fun updateFocusDistance() {
+    println("JAMES calling update focus distance" + lensDistance);
+    val extender: Camera2Interop.Extender<*> = Camera2Interop.Extender<Preview>(previewBuilder)
+    extender.setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_OFF)
+    extender.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF)
+
+    if (lensDistance != null) {
+      extender.setCaptureRequestOption(CaptureRequest.LENS_FOCUS_DISTANCE, lensDistance!!)
+    } else {
+      extender.setCaptureRequestOption(CaptureRequest.LENS_FOCUS_DISTANCE, 5.0f)
+    }
+
+    println("JAMES ABOUT TO BUILD");
+    previewBuilder.build()
+    println("JAMES DONE FOCUSING");
+  }
+
   /**
    * Invalidate all React Props and reconfigure the device
    */
@@ -338,7 +357,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         val shouldReconfigureZoom = shouldReconfigureSession || changedProps.contains("zoom")
         val shouldReconfigureTorch = shouldReconfigureSession || changedProps.contains("torch")
         val shouldUpdateOrientation = shouldReconfigureSession ||  changedProps.contains("orientation")
-        val shouldUpdateExposure = shouldReconfigureSession || changedProps.contains("exposure");
+        val shouldUpdateExposure = shouldReconfigureSession || changedProps.contains("exposure")
+        val shouldUpdateManualFocus = shouldReconfigureSession || changedProps.contains("lensDistance")
 
         if (changedProps.contains("isActive")) {
           updateLifecycleState()
@@ -357,7 +377,10 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
           updateOrientation()
         }
         if (shouldUpdateExposure) {
-          updateExposure();
+          updateExposure()
+        }
+        if (shouldUpdateManualFocus) {
+          updateFocusDistance()
         }
       } catch (e: Throwable) {
         Log.e(TAG, "update() threw: ${e.message}")
@@ -408,8 +431,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         }
       }
 
-      val previewBuilder = Preview.Builder()
-        .setTargetRotation(inputRotation)
+
+        previewBuilder.setTargetRotation(inputRotation)
 
       val imageCaptureBuilder = ImageCapture.Builder()
         .setTargetRotation(outputRotation)
@@ -526,6 +549,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         useCases.add(imageAnalysis!!)
       }
 
+      updateFocusDistance()
+
       preview = previewBuilder.build()
       Log.i(TAG, "Attaching ${useCases.size} use-cases...")
       camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, *useCases.toTypedArray())
@@ -533,6 +558,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
 
       minZoom = camera!!.cameraInfo.zoomState.value?.minZoomRatio ?: 1f
       maxZoom = camera!!.cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
+
+      println("JAMES After initial call")
 
       updateExposure();
 

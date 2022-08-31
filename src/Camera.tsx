@@ -295,6 +295,22 @@ export class Camera extends React.PureComponent<CameraProps> {
   }
   //#endregion
 
+  /**
+   * Focus the camera to a specific lensDistance.
+   * @param {number} lensPosition The distance between 0...1 for the lens to focus on.
+   *
+   * If given a value above 1, the system will set 1 as the lensPosition of the AVCaptureDevice.
+   *
+   * If given a value below 1, the system will set 0 as the lensPosition of the AVCaptureDevice.
+   *
+   * @throws {@linkcode CameraRuntimeError} When any kind of error occured while adjusting the lensPosition. Use the {@linkcode CameraRuntimeError.code | code} property to get the actual error
+   * @example
+   * ```ts
+   * await camera.current.manuallyFocus(
+   *   0.5
+   * )
+   * ```
+   */
   public async manuallyFocus(lensPosition: number): Promise<void> {
     try {
       return await CameraModule.manuallyFocus(this.handle, lensPosition);
@@ -302,7 +318,19 @@ export class Camera extends React.PureComponent<CameraProps> {
       throw tryParseNativeCameraError(e);
     }
   }
+  //#endregion
 
+  /**
+   * Get the current lens position of the selected camera.
+   *
+   * Should return a value between 0 and 1.
+   *
+   * @throws {@linkcode CameraRuntimeError} When any kind of error occured while adjusting the lensPosition. Use the {@linkcode CameraRuntimeError.code | code} property to get the actual error
+   * @example
+   * ```ts
+   * await camera.current.getCurrentLensPosition()
+   * ```
+   */
   public async getCurrentLensPosition(): Promise<void> {
     try {
       return await CameraModule.getCurrentLensPosition(this.handle);
@@ -310,6 +338,7 @@ export class Camera extends React.PureComponent<CameraProps> {
       throw tryParseNativeCameraError(e);
     }
   }
+  //#endregion
 
   /**
    * Get a list of video codecs the current camera supports for a given file type.  Returned values are ordered by efficiency (descending).
