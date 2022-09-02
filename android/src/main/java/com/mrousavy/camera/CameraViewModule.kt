@@ -5,12 +5,15 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureRequest.LENS_FOCUS_DISTANCE
 import android.os.Build
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
 import androidx.camera.extensions.ExtensionMode
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -161,32 +164,26 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
     coroutineScope.launch {
       withPromise(promise) {
         val view = findCameraView(viewTag)
-        view.focus(point)
+        view.focus(point, null)
         return@withPromise null
       }
     }
   }
 
   @ReactMethod
-  fun manuallyFocus(viewTag: Int, lensPosition: Float, promise: Promise) {
+  fun manuallyFocus(viewTag: Int, lensPosition: Float, point: ReadableMap, promise: Promise) {
     coroutineScope.launch {
       withPromise(promise) {
         val view = findCameraView(viewTag)
-//        val manager = reactApplicationContext.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-//          ?: throw CameraManagerUnavailableError()
-//
-//        manager.cameraIdList.forEach loop@{ id ->
-//          try {
-//            val cameraSelector = CameraSelector.Builder().byID(id)
-//            println("JAMES CAMERA SELECTOR:" + cameraSelector.toString())
-//
-//          } catch (error: Error) {
-//            println("JAMES ERROR:" + error.message)
-//          }
-//        }
 
-        val prev = Preview.Builder()
-        view.manuallyFocus(lensPosition, prev)
+        val updatedProps = ArrayList<String>()
+        updatedProps.add("lensDistance")
+
+//        view.manuallyFocus(lensPosition, prev)
+        view.updateFocusDistance(lensPosition)
+//        delay(500)
+//        view.focus(point, 100)
+        view.update(updatedProps, lensPosition)
 
         return@withPromise null
       }
