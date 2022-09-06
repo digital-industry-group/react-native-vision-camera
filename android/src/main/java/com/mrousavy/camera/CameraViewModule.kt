@@ -180,9 +180,7 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
         updatedProps.add("lensDistance")
 
 //        view.manuallyFocus(lensPosition, prev)
-        view.updateFocusDistance(lensPosition)
-//        delay(500)
-//        view.focus(point, 100)
+//        view.updateFocusDistance(lensPosition)
         view.update(updatedProps, lensPosition)
 
         return@withPromise null
