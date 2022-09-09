@@ -155,11 +155,11 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
   }
 
   @ReactMethod
-  fun focus(viewTag: Int, point: ReadableMap, promise: Promise) {
+  fun focus(viewTag: Int, point: ReadableMap, duration: Int, promise: Promise) {
     coroutineScope.launch {
       withPromise(promise) {
         val view = findCameraView(viewTag)
-        view.focus(point)
+        view.focus(point, duration)
         return@withPromise null
       }
     }
