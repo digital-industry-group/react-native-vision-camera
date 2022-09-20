@@ -21,7 +21,6 @@ suspend fun CameraView.manuallyFocus(lensDistance: Float, builder: Preview.Build
 
   val camChars: CameraCharacteristics? = camera?.let { Camera2CameraInfo.extractCameraCharacteristics(it.cameraInfo) }
   val minimumLens = camChars?.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
-  println("JAMES FOUND DIST: " + minimumLens)
 
   if (minimumLens == null) {
     return
@@ -29,26 +28,14 @@ suspend fun CameraView.manuallyFocus(lensDistance: Float, builder: Preview.Build
 
   val newDistance = lensDistance * minimumLens
 
-  println("JAMES NEW LENS DISTANCE" + newDistance.toString())
-
   extender.setCaptureRequestOption(CaptureRequest.LENS_FOCUS_DISTANCE, newDistance)
-
-  println("DONE FOCUSING");
 }
 
 
 suspend fun CameraView.getCurrentLensPosition(): String {
-  System.out.println("JAMES calling get lens position")
-  System.out.println("JAMES CAPTURE LENS" + CaptureRequest.LENS_FOCUS_DISTANCE);
-  System.out.println("JAMES CAPTURE LENS LEN" + CaptureRequest.LENS_FOCAL_LENGTH);
-
   val camCharacteristics = CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS.toString()
   val camCharacteristics2 = CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE.toString()
   val thing: CameraManager
 
-  System.out.println("JAMES CAMERA CHARACTERISTICS" + camCharacteristics)
-  System.out.println("JAMES CAMERA CHARACTERISTICS2" + camCharacteristics2)
-
   return camCharacteristics
-//  return CaptureRequest.get(CaptureRequest.LENS_FOCUS_DISTANCE)
 }
