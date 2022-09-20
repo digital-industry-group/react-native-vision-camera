@@ -11,6 +11,7 @@ import android.util.Range
 import android.view.*
 import android.view.View.OnTouchListener
 import android.widget.FrameLayout
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.*
 import androidx.camera.core.impl.*
@@ -24,13 +25,11 @@ import androidx.lifecycle.*
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.bridge.*
-import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.mrousavy.camera.frameprocessor.FrameProcessorPerformanceDataCollector
 import com.mrousavy.camera.frameprocessor.FrameProcessorRuntimeManager
 import com.mrousavy.camera.utils.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.guava.await
-import java.lang.IllegalArgumentException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.floor
@@ -82,6 +81,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var enableDepthData = false
   var enableHighQualityPhotos: Boolean? = null
   var enablePortraitEffectsMatteDelivery = false
+
   // use-cases
   var photo: Boolean? = null
   var video: Boolean? = null
@@ -89,6 +89,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var exposure: Int? = null
 
   var enableFrameProcessor = false
+
   // props that require format reconfiguring
   var format: ReadableMap? = null
   var fps: Int? = null
@@ -96,6 +97,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   var hdr: Boolean? = null // nullable bool
   var colorSpace: String? = null
   var lowLightBoost: Boolean? = null // nullable bool
+
   // other props
   var isActive = false
   var torch = "off"
@@ -114,10 +116,12 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
       frameProcessorPerformanceDataCollector.clear()
     }
 
+
   // private properties
   private var isMounted = false
   private val reactContext: ReactContext
     get() = context as ReactContext
+  private val previewBuilder = Preview.Builder()
 
   @Suppress("JoinDeclarationAndAssignment")
   internal val previewView: PreviewView
@@ -225,7 +229,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
     scaleGestureListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
       override fun onScale(detector: ScaleGestureDetector): Boolean {
         zoom = max(min((zoom * detector.scaleFactor), maxZoom), minZoom)
-        update(arrayListOfZoom)
+        update(arrayListOfZoom, null)
         return true
       }
     }
@@ -239,12 +243,14 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         hostLifecycleState = Lifecycle.State.RESUMED
         updateLifecycleState()
         // workaround for https://issuetracker.google.com/issues/147354615, preview must be bound on resume
-        update(propsThatRequireSessionReconfiguration)
+        update(propsThatRequireSessionReconfiguration, null)
       }
+
       override fun onHostPause() {
         hostLifecycleState = Lifecycle.State.CREATED
         updateLifecycleState()
       }
+
       override fun onHostDestroy() {
         hostLifecycleState = Lifecycle.State.DESTROYED
         updateLifecycleState()
@@ -320,14 +326,94 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
       val LOW_RANGE = Math.min(Math.abs(range!!.lower), Math.abs(range!!.upper));
       val EXPOSURE_VALUE_RATIO = LOW_RANGE.toDouble() / MAX_PROP_RANGE
       Log.i("finish exposure ", (exposure!! * EXPOSURE_VALUE_RATIO).toInt().toString());
-        camera?.cameraControl?.setExposureCompensationIndex((exposure!! * EXPOSURE_VALUE_RATIO).toInt())
+      camera?.cameraControl?.setExposureCompensationIndex((exposure!! * EXPOSURE_VALUE_RATIO).toInt())
     };
+  }
+
+  fun updateFocusDistance(lensDistance: Float?) {
+    try {
+      val camChars: CameraCharacteristics? = camera?.let { Camera2CameraInfo.extractCameraCharacteristics(it.cameraInfo) }
+      println("LENS DISTANCE JAMES :" + lensDistance)
+      val extender = Camera2Interop.Extender(previewBuilder)
+
+      // Camera will start emitting frames
+      println("JAMES ON CAPTURE COMPLETED")
+      println("JAMES LENS DISTANCE: " + lensDistance)
+      if (lensDistance != null) {
+        println("LENS DISTANCE IS NOT NULL")
+        val thing = lensDistance!! > 0.0
+        println("JAMES LENS VALUE: " + thing)
+        if (lensDistance > 0.0) {
+          val minimumLens = camChars?.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
+
+          val lensIsMoving = CameraCharacteristics.LENS_STATE_MOVING
+          println("LENS STATE MOVING?: " + lensIsMoving)
+
+          var newDistance = lensDistance!! * minimumLens!!
+
+          when (newDistance) {
+//            10.0f -> {
+//              newDistance = 10.0f
+//            }
+            in 10.0f..100f -> {
+              newDistance = 10.0f
+            }
+            in -999.0f..0.0f -> {
+              newDistance = 0.0f
+            }
+//            in 1.0f..1.99f -> {
+//              newDistance = 1.0f
+//            }
+//            in 2.0f..2.99f -> {
+//              newDistance = 2.0f
+//            }
+//            in 3.0f..3.99f -> {
+//              newDistance = 3.0f
+//            }
+//            in 4.0f..4.99f -> {
+//              newDistance = 4.0f
+//            }
+//            in 5.0f..5.99f -> {
+//              newDistance = 5.0f
+//            }
+//            in 6.0f..6.99f -> {
+//              newDistance = 6.0f
+//            }
+//            in 7.0f..7.99f -> {
+//              newDistance = 7.0f
+//            }
+//            in 8.0f..8.99f -> {
+//              newDistance = 8.0f
+//            }
+//            in 9.0f..9.99f -> {
+//              newDistance = 9.0f
+//            }
+          }
+
+          println("JAMES NEW NEW DISTANCE: " + newDistance)
+
+//          extender.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
+//          extender.setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF)
+          extender.setCaptureRequestOption(CaptureRequest.LENS_FOCUS_DISTANCE, newDistance)
+
+          println("JAMES THIS IS COMPLETED")
+          println("NEW DISTANCE, LENS DISTANCE: " + newDistance + " " + lensDistance + " " + minimumLens)
+          previewBuilder.build()
+          println("BUILD PREVIEW COMPLETE")
+
+        }
+      }
+
+      println("JAMES DONE FOCUSING");
+    } catch (e: Error) {
+      println("JAMES ERROR: " + e)
+    }
   }
 
   /**
    * Invalidate all React Props and reconfigure the device
    */
-  fun update(changedProps: ArrayList<String>) = previewView.post {
+  fun update(changedProps: ArrayList<String>, lensDistance: Float?) = previewView.post {
     // TODO: Does this introduce too much overhead?
     //  I need to .post on the previewView because it might've not been initialized yet
     //  I need to use CoroutineScope.launch because of the suspend fun [configureSession]
@@ -337,14 +423,17 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         val shouldReconfigureSession = changedProps.containsAny(propsThatRequireSessionReconfiguration)
         val shouldReconfigureZoom = shouldReconfigureSession || changedProps.contains("zoom")
         val shouldReconfigureTorch = shouldReconfigureSession || changedProps.contains("torch")
-        val shouldUpdateOrientation = shouldReconfigureSession ||  changedProps.contains("orientation")
-        val shouldUpdateExposure = shouldReconfigureSession || changedProps.contains("exposure");
+        val shouldUpdateOrientation = shouldReconfigureSession || changedProps.contains("orientation")
+        val shouldUpdateExposure = shouldReconfigureSession || changedProps.contains("exposure")
+        val shouldUpdateManualFocus = shouldReconfigureSession || changedProps.contains("lensDistance")
+
+        println("JAMES SHOULD UPDATE:" + changedProps.contains("lensDistance"))
 
         if (changedProps.contains("isActive")) {
           updateLifecycleState()
         }
         if (shouldReconfigureSession) {
-          configureSession()
+          configureSession(lensDistance)
         }
         if (shouldReconfigureZoom) {
           val zoomClamped = max(min(zoom, maxZoom), minZoom)
@@ -357,7 +446,12 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
           updateOrientation()
         }
         if (shouldUpdateExposure) {
-          updateExposure();
+          updateExposure()
+        }
+        if (shouldUpdateManualFocus) {
+          println("JAMES CAN CONFIGURE MANUALFOCUS")
+//          updateFocusDistance(lensDistance)
+          configureSession(lensDistance)
         }
       } catch (e: Throwable) {
         Log.e(TAG, "update() threw: ${e.message}")
@@ -370,7 +464,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
    * Configures the camera capture session. This should only be called when the camera device changes.
    */
   @SuppressLint("RestrictedApi")
-  private suspend fun configureSession() {
+  private suspend fun configureSession(lensDistance: Float?) {
     try {
       val startTime = System.currentTimeMillis()
       Log.i(TAG, "Configuring session...")
@@ -390,7 +484,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
 
       var cameraSelector = CameraSelector.Builder().byID(cameraId!!).build()
 
-      val tryEnableExtension: (suspend (extension: Int) -> Unit) = lambda@ { extension ->
+      val tryEnableExtension: (suspend (extension: Int) -> Unit) = lambda@{ extension ->
         if (extensionsManager == null) {
           Log.i(TAG, "Initializing ExtensionsManager...")
           extensionsManager = ExtensionsManager.getInstanceAsync(context, cameraProvider).await()
@@ -408,8 +502,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         }
       }
 
-      val previewBuilder = Preview.Builder()
-        .setTargetRotation(inputRotation)
+
+      previewBuilder.setTargetRotation(inputRotation)
 
       val imageCaptureBuilder = ImageCapture.Builder()
         .setTargetRotation(outputRotation)
@@ -526,6 +620,8 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         useCases.add(imageAnalysis!!)
       }
 
+      updateFocusDistance(lensDistance)
+
       preview = previewBuilder.build()
       Log.i(TAG, "Attaching ${useCases.size} use-cases...")
       camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, *useCases.toTypedArray())
@@ -537,7 +633,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
       updateExposure();
 
       val duration = System.currentTimeMillis() - startTime
-      Log.i(TAG_PERF, "Session configured in $duration ms! Camera: ${camera!!}")
+      Log.i(TAG_PERF, "Session configured in $duration ms! Camera: $x{camera!!}")
       invokeOnInitialized()
     } catch (exc: Throwable) {
       Log.e(TAG, "Failed to configure session: ${exc.message}")

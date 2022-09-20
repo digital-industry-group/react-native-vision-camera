@@ -5,10 +5,15 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureRequest.LENS_FOCUS_DISTANCE
 import android.os.Build
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
 import androidx.camera.extensions.ExtensionMode
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -161,6 +166,33 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
         val view = findCameraView(viewTag)
         view.focus(point, duration)
         return@withPromise null
+      }
+    }
+  }
+
+  @ReactMethod
+  fun manuallyFocus(viewTag: Int, lensPosition: Float, point: ReadableMap, promise: Promise) {
+    coroutineScope.launch {
+      withPromise(promise) {
+        val view = findCameraView(viewTag)
+
+        val updatedProps = ArrayList<String>()
+        updatedProps.add("lensDistance")
+
+        view.update(updatedProps, lensPosition)
+
+        return@withPromise null
+      }
+    }
+  }
+
+  @ReactMethod
+  fun getCurrentLensPosition(viewTag: Int, promise: Promise) {
+    coroutineScope.launch {
+      withPromise(promise) {
+        val view = findCameraView(viewTag)
+        val currentLensPosition = view.getCurrentLensPosition()
+        return@withPromise currentLensPosition
       }
     }
   }

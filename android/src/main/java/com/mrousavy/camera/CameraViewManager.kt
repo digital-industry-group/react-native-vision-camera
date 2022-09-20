@@ -70,6 +70,13 @@ class CameraViewManager(reactContext: ReactApplicationContext) : ViewGroupManage
     view.exposure = exposure
   }
 
+  @ReactProp(name = "lensDistance")
+  fun setManuallyFocus(view: CameraView, lensDistance: Float) {
+    if (view.lensDistance != lensDistance)
+      addChangedPropToTransaction(view, "lensDistance")
+    view.lensDistance = lensDistance
+  }
+
   @ReactProp(name = "enableFrameProcessor")
   fun setEnableFrameProcessor(view: CameraView, enableFrameProcessor: Boolean) {
     if (view.enableFrameProcessor != enableFrameProcessor)
