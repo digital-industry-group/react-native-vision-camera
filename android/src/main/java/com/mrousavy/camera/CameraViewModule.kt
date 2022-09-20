@@ -160,11 +160,11 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
   }
 
   @ReactMethod
-  fun focus(viewTag: Int, point: ReadableMap, promise: Promise) {
+  fun focus(viewTag: Int, point: ReadableMap, duration: Int, promise: Promise) {
     coroutineScope.launch {
       withPromise(promise) {
         val view = findCameraView(viewTag)
-        view.focus(point, null)
+        view.focus(point, duration)
         return@withPromise null
       }
     }
@@ -179,8 +179,6 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
         val updatedProps = ArrayList<String>()
         updatedProps.add("lensDistance")
 
-//        view.manuallyFocus(lensPosition, prev)
-//        view.updateFocusDistance(lensPosition)
         view.update(updatedProps, lensPosition)
 
         return@withPromise null

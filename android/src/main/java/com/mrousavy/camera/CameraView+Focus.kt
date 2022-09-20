@@ -6,8 +6,9 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
-suspend fun CameraView.focus(pointMap: ReadableMap) {
+suspend fun CameraView.focus(pointMap: ReadableMap, duration: Int) {
   val cameraControl = camera?.cameraControl ?: throw CameraNotReadyError()
+
   if (!pointMap.hasKey("x") || !pointMap.hasKey("y")) {
     throw InvalidTypeScriptUnionError("point", pointMap.toString())
   }
@@ -22,7 +23,7 @@ suspend fun CameraView.focus(pointMap: ReadableMap) {
   }
 
   val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
-    .setAutoCancelDuration(5, TimeUnit.SECONDS) // auto-reset after 5 seconds
+    .setAutoCancelDuration(duration.toLong(), TimeUnit.SECONDS) // auto-reset after 5 seconds
     .build()
 
   cameraControl.startFocusAndMetering(action).await()

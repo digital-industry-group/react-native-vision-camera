@@ -286,8 +286,10 @@ export class Camera extends React.PureComponent<CameraProps> {
    * })
    * ```
    */
-  public async focus(point: Point): Promise<void> {
+  public async focus(point: Point, duration: number): Promise<void> {
     try {
+      if (Platform.OS === 'android') return await CameraModule.focus(this.handle, point, duration);
+
       return await CameraModule.focus(this.handle, point);
     } catch (e) {
       throw tryParseNativeCameraError(e);
